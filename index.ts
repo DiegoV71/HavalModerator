@@ -1,10 +1,9 @@
 import { Telegraf } from 'telegraf'
-import { bot_token } from './config.json';
 
 process.env["NTBA_FIX_319"] = '1';
 
 
-const token = process.env.BOT_TOKEN || bot_token;
+const token = process.env.BOT_TOKEN || require('./config.json').bot_token;
 const url = process.env.APP_URL;
 
 
