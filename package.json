@@ -1,0 +1,28 @@
+{
+  "name": "havalmoderator",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node dist",
+    "build": "tsc",
+    "postinstall": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://DiegoV71@github.com/DiegoV71/HavalModerator.git"
+  },
+  "author": "DiegoVisconti",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DiegoV71/HavalModerator/issues"
+  },
+  "homepage": "https://github.com/DiegoV71/HavalModerator#readme",
+  "dependencies": {
+    "telegraf": "^4.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^16.9.1"
+  }
+}
