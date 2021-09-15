@@ -5,6 +5,9 @@ const { Schema } = mongoose;
 
 process.env["NTBA_FIX_319"] = "1";
 
+var http = require('http');
+http.createServer().listen(process.env.PORT || 6000)
+
 const token: string =
   process.env.BOT_TOKEN || require("./config.json").bot_token;
 const mongo_path: string =
