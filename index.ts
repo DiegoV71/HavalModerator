@@ -160,8 +160,7 @@ bot.command(["vals"], async (ctx) => {
 
   let i = 0;
   let list = "Список волонтеров:";
-  try {
-    
+
   for (const doc of await VolunteerModel.find({ chat_id: chatId })) {
     i++;
     let userName = doc.get("user_name");
@@ -171,11 +170,6 @@ bot.command(["vals"], async (ctx) => {
 
     list += `\n${i}. ${name}`;
   }
-}
-catch (e)
-{
-    console.log(e);
-}
 
   ctx.reply(list);
 });
