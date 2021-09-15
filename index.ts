@@ -5,19 +5,23 @@ const { Schema } = mongoose;
 
 process.env["NTBA_FIX_319"] = "1";
 
-var express = require('express');
-var app     = express();
+var express = require("express");
+var app = express();
 
-app.set('port', (process.env.PORT || 5000));
+app.set("port", process.env.PORT || 5000);
 
 //For avoidong Heroku $PORT error
-app.get('/', (request:any, response:any) => {
-    var result = 'App is running'
+app
+  .get("/", (request: any, response: any) => {
+    var result = "App is running";
     response.send(result);
-}).listen(app.get('port'), function() {
-    console.log('App is running, server is listening on port ', app.get('port'));
-});
-
+  })
+  .listen(app.get("port"), function () {
+    console.log(
+      "App is running, server is listening on port ",
+      app.get("port")
+    );
+  });
 
 const token: string =
   process.env.BOT_TOKEN || require("./config.json").bot_token;
@@ -33,7 +37,6 @@ const url = process.env.APP_URL;
 const dbToken = mongo_path
   .replace("$(User)", mongo_user)
   .replace("$(Password)", mongo_password);
-mongoose.connect(dbToken);
 
 const volunteerSchema = new Schema({
   chat_id: Number,
@@ -74,118 +77,147 @@ bot.command(["del", "d"], (ctx) => {
 });
 
 bot.command(["report", "r"], async (ctx) => {
-  let chatId = ctx.message.chat.id;
+  try {
+    let chatId = ctx.message.chat.id;
 
-  ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
+    ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
 
-  if (!ctx.message.reply_to_message) return;
+    if (!ctx.message.reply_to_message) return;
 
-  let volunteer = await getVolunteer(ctx.message.from.id, chatId);
-  if (!volunteer) return;
+    await mongoose.connect(dbToken);
 
-  var message = await AlertContentModel.findOne({
-    chat_id: chatId,
-    message_id: ctx.message.reply_to_message.message_id,
-  });
-  if (!message) {
-    message = new AlertContentModel({
+    let volunteer = await getVolunteer(ctx.message.from.id, chatId);
+    if (!volunteer) return;
+
+    var message = await AlertContentModel.findOne({
       chat_id: chatId,
       message_id: ctx.message.reply_to_message.message_id,
-      alerts: 0,
-      alertBy: "",
     });
+    if (!message) {
+      message = new AlertContentModel({
+        chat_id: chatId,
+        message_id: ctx.message.reply_to_message.message_id,
+        alerts: 0,
+        alertBy: "",
+      });
+    }
+    let currentAlertBy: string = message.get("alert_by") ?? "";
+
+    let hasMyAlert =
+      currentAlertBy
+        .split(",")
+        .filter((i) => i == ctx.message.from.id.toString()).length > 0;
+    if (hasMyAlert) return;
+
+    currentAlertBy += `${ctx.message.from.id},`;
+    message.set("alert_by", currentAlertBy);
+
+    let currentAlerts = message.get("alerts");
+    message.set("alerts", ++currentAlerts);
+    await message.save();
+
+    if (currentAlerts >= 3)
+      ctx.telegram.deleteMessage(
+        chatId,
+        ctx.message.reply_to_message.message_id
+      );
+  } finally {
+    mongoose.disconnect();
   }
-  let currentAlertBy: string = message.get("alert_by") ?? "";
-
-  let hasMyAlert =
-    currentAlertBy.split(",").filter((i) => i == ctx.message.from.id.toString())
-      .length > 0;
-  if (hasMyAlert) return;
-
-  currentAlertBy += `${ctx.message.from.id},`;
-  message.set("alert_by", currentAlertBy);
-
-  let currentAlerts = message.get("alerts");
-  message.set("alerts", ++currentAlerts);
-  await message.save();
-
-  if (currentAlerts >= 3)
-    ctx.telegram.deleteMessage(chatId, ctx.message.reply_to_message.message_id);
 });
 
 bot.command(["addval", "av"], async (ctx) => {
-  var chatId = ctx.chat.id;
+  try {
+    var chatId = ctx.chat.id;
 
-  ctx.telegram.deleteMessage(chatId, ctx.message.message_id);
+    ctx.telegram.deleteMessage(chatId, ctx.message.message_id);
 
-  if (ctx.from.username != "diegov") return;
+    if (ctx.from.username != "diegov") return;
 
-  if (ctx.message.reply_to_message != null) {
-    const chatId = ctx.message.chat.id;
-    const user = ctx.message.reply_to_message.from;
-    const name = [user?.first_name, user?.last_name].filter((i) => i).join(" ");
+    if (ctx.message.reply_to_message != null) {
+      const chatId = ctx.message.chat.id;
+      const user = ctx.message.reply_to_message.from;
+      const name = [user?.first_name, user?.last_name]
+        .filter((i) => i)
+        .join(" ");
 
-    const volunteer = await getVolunteer(user?.id, chatId);
+      await mongoose.connect(dbToken);
+      const volunteer = await getVolunteer(user?.id, chatId);
 
-    if (volunteer) {
-      ctx.reply(name + " уже волонтер!");
-      return;
+      if (volunteer) {
+        ctx.reply(name + " уже волонтер!");
+        return;
+      }
+
+      var doc = new VolunteerModel({
+        user_id: user?.id,
+        user_name: user?.username,
+        name: name,
+        chat_id: chatId,
+      });
+      await doc.save();
+
+      ctx.reply(name + " стал волонтером!");
     }
-
-    var doc = new VolunteerModel({
-      user_id: user?.id,
-      user_name: user?.username,
-      name: name,
-      chat_id: chatId,
-    });
-    await doc.save();
-
-    ctx.reply(name + " стал волонтером!");
+  } finally {
+    mongoose.disconnect();
   }
 });
 
 bot.command(["delval", "dv"], async (ctx) => {
-  var chatId = ctx.chat.id;
+  try {
+    var chatId = ctx.chat.id;
 
-  ctx.telegram.deleteMessage(chatId, ctx.message.message_id);
+    ctx.telegram.deleteMessage(chatId, ctx.message.message_id);
 
-  if (ctx.from.username != "diegov") return;
+    if (ctx.from.username != "diegov") return;
 
-  if (ctx.message.reply_to_message != null) {
-    const user = ctx.message.reply_to_message.from;
-    const name = [user?.first_name, user?.last_name].filter((i) => i).join(" ");
+    if (ctx.message.reply_to_message != null) {
+      const user = ctx.message.reply_to_message.from;
+      const name = [user?.first_name, user?.last_name]
+        .filter((i) => i)
+        .join(" ");
 
-    const volunteer = await getVolunteer(user?.id, chatId);
+      await mongoose.connect(dbToken);
+      const volunteer = await getVolunteer(user?.id, chatId);
 
-    if (!volunteer) {
-      ctx.reply(name + " не волонтер!");
-      return;
+      if (!volunteer) {
+        ctx.reply(name + " не волонтер!");
+        return;
+      }
+      await volunteer?.delete();
+
+      ctx.reply(name + " перестал быть волонтером!");
     }
-    await volunteer?.delete();
-
-    ctx.reply(name + " перестал быть волонтером!");
+  } finally {
+    mongoose.disconnect();
   }
 });
 
 bot.command(["vals"], async (ctx) => {
-  var chatId = ctx.chat.id;
+  try {
+    var chatId = ctx.chat.id;
 
-  ctx.telegram.deleteMessage(chatId, ctx.message.message_id);
+    ctx.telegram.deleteMessage(chatId, ctx.message.message_id);
 
-  let i = 0;
-  let list = "Список волонтеров:";
+    let i = 0;
+    let list = "Список волонтеров:";
 
-  for (const doc of await VolunteerModel.find({ chat_id: chatId })) {
-    i++;
-    let userName = doc.get("user_name");
-    let name = [doc.get("name"), userName ? `(@${userName})` : undefined]
-      .filter((i) => i)
-      .join(" ");
+    await mongoose.connect(dbToken);
+    for (const doc of await VolunteerModel.find({ chat_id: chatId })) {
+      i++;
+      let userName = doc.get("user_name");
+      let name = [doc.get("name"), userName ? `(@${userName})` : undefined]
+        .filter((i) => i)
+        .join(" ");
 
-    list += `\n${i}. ${name}`;
+      list += `\n${i}. ${name}`;
+    }
+
+    ctx.reply(list);
+  } finally {
+    mongoose.disconnect();
   }
-
-  ctx.reply(list);
 });
 
 bot.hears("!check", (ctx) => {
