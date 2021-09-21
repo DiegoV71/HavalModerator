@@ -5,23 +5,15 @@ const { Schema } = mongoose;
 
 process.env["NTBA_FIX_319"] = "1";
 
+var port = process.env.PORT;
 var express = require("express");
 var app = express();
 
-app.set("port", process.env.PORT || 5000);
+app.set("port", port || 5000);
 
 //For avoidong Heroku $PORT error
-app
-  .get("/", (request: any, response: any) => {
-    var result = "App is running";
-    response.send(result);
-  })
-  .listen(app.get("port"), function () {
-    console.log(
-      "App is running, server is listening on port ",
-      app.get("port")
-    );
-  });
+
+
 
 const token: string =
   process.env.BOT_TOKEN || require("./config.json").bot_token;
@@ -57,6 +49,24 @@ const AlertContentModel = mongoose.model("AlertContent", contentSchema);
 
 const bot = new Telegraf(token);
 // if (url) bot.telegram.setWebhook(url);
+
+
+let secretPath = '/aweqdawdasdwad';
+app.use(bot.webhookCallback(secretPath))
+bot.telegram.setWebhook(`https://haval-moderator.heroku.com/${secretPath}`)
+
+app
+  .get("/", (request: any, response: any) => {
+    var result = "App is running";
+    response.send(result);
+  })
+  .listen(port, function () {
+    console.log(
+      "App is running, server is listening on port ",
+      port,
+    );
+  });
+
 
 bot.start((ctx) => ctx.reply("Hello World"));
 
@@ -235,6 +245,8 @@ function getVolunteer(
 
   return query;
 }
+
+
 
 bot.launch();
 
