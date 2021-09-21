@@ -240,5 +240,11 @@ bot.launch();
 
 console.log("Started!");
 
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
+process.once("SIGINT", () => {
+  mongoose.disconnect();
+  bot.stop("SIGINT");
+});
+process.once("SIGTERM", () => {
+  mongoose.disconnect();
+  bot.stop("SIGTERM");
+});
