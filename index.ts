@@ -248,7 +248,7 @@ function getVolunteer(
 
 
 
-bot.launch();
+// bot.launch();
 
 console.log("Started!");
 
